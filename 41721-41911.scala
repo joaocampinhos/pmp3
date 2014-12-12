@@ -7,6 +7,8 @@ object Proj3 {
   case class PartOrder(a: Array[Double]);
   case class PartArray(a: Array[Double]);
   case class SumResult(d: Double);
+  case class Ptara(s: String);
+  case class Mapf(a: Array[Double], b: Int, c: Int);
 
   class adder() extends Actor {
     def act(){
@@ -59,6 +61,23 @@ object Proj3 {
     return result;
   }
 
+  class SODM extends Actor {
+    def act() {
+      var client: scala.actors.OutputChannel[Any] = null;
+      var tparts = 0
+      react {
+        case Mapf(part, partn, nparts) =>
+          tparts = tparts+1
+          println(runtime.ScalaRunTime.stringOf(part))
+          println(tparts)
+          println(nparts)
+          if(tparts == nparts)
+            client ! Ptara("sim")
+            exit();
+      }
+    }
+  }
+
   def div(arr: Array[Double], n: Int) : Unit = {
     if (arr.length % n != 0) {
       // Não dá para dividir em partes iguais.
@@ -66,29 +85,42 @@ object Proj3 {
       var sub = arr.length/n;
       for(a <- 0 until n){
         var p = a*sub
-        if (arr.slice(p+sub,arr.length).length <= sub)
-          //Manda para actor esta parte
-          println(runtime.ScalaRunTime.stringOf(arr.slice(p,arr.length)))
-        else
-          //Manda para actor esta parte
-          println(runtime.ScalaRunTime.stringOf(arr.slice(p,p+sub)))
+        if (arr.slice(p+sub,arr.length).length <= sub) {
+          var part = arr.slice(p,arr.length)
+          new SODM().start() !? Mapf(part, a, n) match {
+            case Ptara(s) =>
+              println(s)
+          }
+          //println(runtime.ScalaRunTime.stringOf(arr.slice(p,arr.length)))
+        }
+        else {
+          var part = arr.slice(p,p+sub)
+          new SODM().start() !? Mapf(part, a, n) match {
+            case Ptara(s) =>
+              println(s)
+          }
+          //println(runtime.ScalaRunTime.stringOf(arr.slice(p,p+sub)))
+        }
       }
     }
     else {
       // Dá para dividir certinho
       var temp = arr.grouped(arr.size/n).toArray
       for (i <- temp)
-        //Manda para actor esta parte
         println(runtime.ScalaRunTime.stringOf(i))
     }
+  }
+
+  abstract class sodm[T]{
+    def div(a: Array[T], n: Int): Unit
   }
 
   def main(args: Array[String]): Unit = {
     val size = args(0).toInt;
     val a: Array[Int] = (1 to size).toArray;
     val b: Array[Double] = a map (_ * 1.0);
-    println(div(b, 3));
-    println(sum(b));
+    div(b, 3);
+    //println(sum(b));
     //val j = new joinner(b);
     //j.start();
   }
