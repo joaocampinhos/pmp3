@@ -3,10 +3,11 @@ import scala.actors.Actor
 import scala.actors.Actor._
 
   case class PartSum(num: Double);
-  case class PartOrder(a: Array[Double]);
-  case class PartArray(a: Array[Double], nParts: Int);
+  case class PartOrder(a: Array[Any]);
+  case class PartArray(a: Array[Any], nParts: Int);
   case class SumResult(d: Double);
   case class MapSum(arrayInParts: Array[Array[Double]]);
+  case class MapIncrement(arrayInParts: Array[Array[Int]]);
   case class PartedArray(arrayInParts: Array[Any]);
 
   class adder() extends Actor {
@@ -15,7 +16,7 @@ import scala.actors.Actor._
         case PartOrder(a) =>
           var total: Double = 0.0;
           for(i <- a.indices)
-            total += a(i);
+            total += a(i).asInstanceOf[Double];
           sender ! PartSum(total);
           exit();
       }
@@ -55,11 +56,12 @@ import scala.actors.Actor._
             case PartArray(a, nParts) =>
               val temp = a.grouped(a.size/nParts).toArray;
               sender ! PartedArray(temp.asInstanceOf[Array[Any]]);
+              exit();
           }
         }
       }
     }
-    
+
 
     class mapper extends Actor{
       def act(){
@@ -72,7 +74,7 @@ import scala.actors.Actor._
               client = sender;
               //var temp = a.grouped(a.size/nParts).toArray;
               for(i <- arrayInParts)
-                new adder().start() ! PartOrder(i);
+                new adder().start() ! PartOrder(i.asInstanceOf[Array[Any]]);
             case PartSum(total) =>
               finale = finale + total;
               parts = parts + 1;
@@ -80,6 +82,10 @@ import scala.actors.Actor._
                 //println("finale");
                 client ! SumResult(finale);
                 exit();
+            /*case MapIncrement(arrayInParts) =>
+              client = sender;//tentar por isto em cima a ver de funfa
+              for(i <- arrayInParts) =>
+                new incrementer().start() ! PartOrder*/
               }
           }
         }
@@ -91,7 +97,7 @@ import scala.actors.Actor._
       var result: Double = 0.0;
       val p = new partitionner();
       p.start();
-      p !? PartArray(a, nParts) match{
+      p !? PartArray(a.asInstanceOf[Array[Any]], nParts) match{
         case PartedArray(partedArray) =>
           val m = new mapper();
           m.start();
@@ -102,6 +108,31 @@ import scala.actors.Actor._
       }
       return result;
     }
+
+   /* // @ARG(1) @PARTS(8) @REDUCE((x: Array[Array[Int]]) => x.flatten)
+    def increment(a: Array[Int], nparts: Int): Array[Int] = {
+        val res: Array[Int] = Array.ofDim[Int](a.length)
+        for( i <- a.indices )
+            res(i) = a(i) + 1
+        res
+    }*/
+
+    // @ARG(1) @PARTS(8) @REDUCE((x: Array[Array[Int]]) => x.flatten)
+    /*def increment(a: Array[Int], nParts: Int): Array[Int] = {
+      var result: Array[Array[Int]] = null;
+      val p = new partitionner();
+      p.start();
+      p !? PartArray(a, nParts) match {
+        case PartedArray(partedArray) =>
+          val m = new mapper();
+          m.start();
+          m !? MapIncrement(partedArray.asInstanceOf[Array[Array[Int]]]) match{
+            case incrementResult(finale) =>
+              result = finale;
+          }
+      }
+      return result;
+    }*/
 
   def main(args: Array[String]): Unit = {
     val size = args(0).toInt;
