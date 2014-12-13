@@ -9,8 +9,6 @@ object Proj3 {
   case class MapSum(arrayInParts: Array[Array[Double]]);
   case class PartedArray(arrayInParts: Array[Any]);
 
-  def f[T](v: T) = v
-
   class adder() extends Actor {
     def act(){
       react{
@@ -36,7 +34,6 @@ object Proj3 {
             finale = finale + total;
             parts = parts + 1;
             if(parts == 4){
-              //println("finale");
               client ! SumResult(finale);
               exit();
             }
@@ -63,7 +60,6 @@ object Proj3 {
              //var temp = a.grouped(sub).toArray;
              // Não funciona claro!
              var temp = a.grouped(sub).toArray.slice(0,nParts);
-             println(runtime.ScalaRunTime.stringOf(a.toArray));
              for(arr <- 0 until nParts){
                var p = arr*sub
                if (a.slice(p+sub,a.length).length <= sub) {
@@ -79,13 +75,14 @@ object Proj3 {
                }
              }
              //WAT?
-             println(runtime.ScalaRunTime.stringOf(temp));
              sender ! PartedArray(temp.asInstanceOf[Array[Any]]);
+             exit()
            }
            else {
              // Dá para dividir certinho
              var temp = a.grouped(a.size/nParts).toArray
              sender ! PartedArray(temp.asInstanceOf[Array[Any]]);
+             exit()
            }
        }
      }
@@ -99,18 +96,20 @@ object Proj3 {
      var client: scala.actors.OutputChannel[Any] = null;
      var finale: Double = 0.0;
      var parts: Int = 0;
+     var nparts: Int = 0;
      loop{
        react{
          case MapSum(arrayInParts) =>
            client = sender;
            //var temp = a.grouped(a.size/nParts).toArray;
-           for(i <- arrayInParts)
+           for(i <- arrayInParts) {
+             nparts+=1
              new adder().start() ! PartOrder(i);
+           }
          case PartSum(total) =>
            finale = finale + total;
            parts = parts + 1;
-           if(parts == 4){
-             //println("finale");
+           if(parts == nparts){
              client ! SumResult(finale);
              exit();
            }
